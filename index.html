@@ -2,7 +2,7 @@
 <html>
 <head>
   <title>Trailheads Mint Bot</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5/dist/ethers.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
   <h2>Mint Trailheads NFT</h2>
@@ -66,14 +66,4 @@
           "0x",
           { value: pricePerToken.mul(quantity) }
         );
-        document.getElementById('status').innerText = '⌛ Minting... TX: ' + tx.hash;
-        await tx.wait();
-        document.getElementById('status').innerText = '✅ Mint sukses!';
-      } catch (err) {
-        console.error(err);
-        document.getElementById('status').innerText = '❌ Error: ' + err.message;
-      }
-    });
-  </script>
-</body>
-</html>
+        document.getElementById('status').innerText = '⌛ Minting...
