@@ -1,72 +1,79 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Trailheads Mint Bot</title>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5/dist/ethers.min.js"></script>
-  </head>
-  <body>
-    <h2>Mint Trailheads NFT</h2>
-    <button id="connectBtn">Connect Wallet</button>
-    <button id="mintBtn" disabled>Mint Now</button>
-    <p id="status"></p>
+<head>
+  <title>Trailheads Mint Bot</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5/dist/ethers.min.js"></script>
+</head>
+<body>
+  <h2>Mint Trailheads NFT</h2>
+  <button id="connectBtn">Connect Wallet</button>
+  <button id="mintBtn" disabled>Mint Now</button>
+  <p id="status"></p>
 
-    <script>
+  <script>
+    let provider;
+    let signer;
+
+    async function connectWallet() {
+      if (typeof window.ethereum === 'undefined') {
+        alert('Metamask tidak terdeteksi. Silakan install Metamask!');
+        return;
+      }
+
+      try {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        document.getElementById('status').innerText = '✅ Wallet connected: ' + (await signer.getAddress());
+        document.getElementById('mintBtn').disabled = false;
+      } catch (error) {
+        document.getElementById('status').innerText = '❌ Wallet connect failed: ' + error.message;
+      }
+    }
+
+    document.getElementById('connectBtn').addEventListener('click', connectWallet);
+
+    document.getElementById('mintBtn').addEventListener('click', async () => {
+      if (!signer) {
+        alert('Wallet belum terhubung');
+        return;
+      }
+
       const CONTRACT = "0x7E5Ca13295B580128d9e9BD46756f2368C9Aa263";
       const ABI = [
-        "function claim(address _receiver, uint256 _quantity, address _currency, uint256 _pricePerToken, tuple(bytes32[] proof,uint256,uint256,address) _allowlistProof, bytes _data) payable"
+        "function claim(address _receiver, uint256 _quantity, address _currency, uint256 _pricePerToken, tuple(bytes32[] proof,uint256 quantityLimitPerWallet,uint256 pricePerToken,address currency) _allowlistProof, bytes _data) payable"
       ];
 
-      let signer;
-
-      document.getElementById("connectBtn").onclick = async () => {
-        if (typeof window.ethereum === 'undefined') {
-          alert('Metamask tidak terdeteksi. Silakan install Metamask!');
-          return;
-        }
-
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        try {
-          await provider.send("eth_requestAccounts", []);
-          signer = provider.getSigner();
-          document.getElementById("status").innerText = "✅ Wallet connected!";
-          document.getElementById("mintBtn").disabled = false;
-        } catch (err) {
-          document.getElementById("status").innerText = "❌ Wallet connect failed";
-        }
+      const contract = new ethers.Contract(CONTRACT, ABI, signer);
+      const receiver = await signer.getAddress();
+      const quantity = 1;
+      const pricePerToken = ethers.utils.parseEther("0.02");
+      const currency = "0x0000000000000000000000000000000000000000";
+      const allowlistProof = {
+        proof: [],
+        quantityLimitPerWallet: 0,
+        pricePerToken: 0,
+        currency: ethers.constants.AddressZero,
       };
 
-      document.getElementById("mintBtn").onclick = async () => {
-        const contract = new ethers.Contract(CONTRACT, ABI, signer);
-
-        const receiver = await signer.getAddress();
-        const quantity = 1;
-        const pricePerToken = ethers.utils.parseEther("0.02"); // Ganti sesuai harga mint
-        const currency = "0x0000000000000000000000000000000000000000"; // ETH
-        const allowlistProof = {
-          proof: [],
-          quantityLimitPerWallet: 0,
-          pricePerToken: 0,
-          currency: ethers.constants.AddressZero,
-        };
-
-        try {
-          const tx = await contract.claim(
-            receiver,
-            quantity,
-            currency,
-            pricePerToken,
-            allowlistProof,
-            "0x",
-            { value: pricePerToken.mul(quantity) }
-          );
-          document.getElementById("status").innerText = `⌛ Minting... TX: ${tx.hash}`;
-          await tx.wait();
-          document.getElementById("status").innerText = "✅ Mint sukses!";
-        } catch (err) {
-          console.error(err);
-          document.getElementById("status").innerText = "❌ Error: " + err.message;
-        }
-      };
-    </script>
-  </body>
+      try {
+        const tx = await contract.claim(
+          receiver,
+          quantity,
+          currency,
+          pricePerToken,
+          allowlistProof,
+          "0x",
+          { value: pricePerToken.mul(quantity) }
+        );
+        document.getElementById('status').innerText = '⌛ Minting... TX: ' + tx.hash;
+        await tx.wait();
+        document.getElementById('status').innerText = '✅ Mint sukses!';
+      } catch (err) {
+        console.error(err);
+        document.getElementById('status').innerText = '❌ Error: ' + err.message;
+      }
+    });
+  </script>
+</body>
 </html>
